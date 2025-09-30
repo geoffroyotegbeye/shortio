@@ -1,0 +1,7 @@
+# .gitignore
+
+app/core/secrets.py
+.env
+output
+venv
+__pycache__/
