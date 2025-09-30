@@ -17,17 +17,15 @@ export default function VideoPlayer({ videoUrl, onGenerateAnother }: VideoPlayer
 
   return (
     <div className="w-full space-y-4">
-      <div className="w-full flex justify-center">
-        <div className="bg-gray-900 rounded-lg overflow-hidden w-full max-w-[320px] aspect-[9/16]">
-          <video
-            src={videoUrl}
-            controls
-            className="w-full h-full object-cover"
-            autoPlay
+      <div className="bg-gray-900 rounded-lg overflow-hidden">
+        <video
+          src={videoUrl}
+          controls
+          className="w-full h-auto"
+          autoPlay
         >
           Votre navigateur ne supporte pas la lecture de vidéos.
-          </video>
-        </div>
+        </video>
       </div>
 
       <div className="flex gap-3">
