@@ -75,7 +75,7 @@ def make_tiktok_from_prompt(prompt, n_images=3, category="astuce", lang="fr", to
         print("LOG: Étape 3 - Tentative de génération audio...")
         try:
             print("LOG: Tentative avec Deepgram (prioritaire)...")
-            audio_response = generate_audio_with_deepgram(text=script)
+            audio_response = generate_audio_with_deepgram(text=script, lang=lang)
         except Exception as e_deepgram:
             print(f"LOG: Échec de Deepgram TTS: {e_deepgram}. Tentative avec ElevenLabs...")
             try:
@@ -108,7 +108,7 @@ def make_tiktok_from_prompt(prompt, n_images=3, category="astuce", lang="fr", to
         print("LOG: Étape 3.5 - Tentative de transcription pour la synchronisation...")
         try:
             print("LOG: Tentative avec Deepgram (prioritaire)...")
-            timing_data = transcribe_audio_with_deepgram(audio_path)
+            timing_data = transcribe_audio_with_deepgram(audio_path, lang=lang)
         except Exception as e_deepgram_stt:
             print(f"LOG: Échec de Deepgram STT: {e_deepgram_stt}. Tentative avec Whisper...")
             try:

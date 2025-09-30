@@ -11,7 +11,7 @@ except Exception as e:
     print(f"LOG: Avertissement - Impossible d'initialiser le client Deepgram: {e}")
     deepgram_client = None
 
-def generate_audio_with_deepgram(text: str) -> Dict[str, Any]:
+def generate_audio_with_deepgram(text: str, lang: str = 'en') -> Dict[str, Any]:
     """
     Génère de l'audio avec le service Text-to-Speech de Deepgram.
     """
@@ -20,8 +20,12 @@ def generate_audio_with_deepgram(text: str) -> Dict[str, Any]:
 
     print("LOG: Appel à l'API Deepgram pour la génération audio (TTS)...")
     try:
+        # Choisir le modèle en fonction de la langue
+        model_name = "aura-2-asteria-fr" if lang == 'fr' else "aura-2-zeus-en"
+        print(f"LOG: Utilisation du modèle Deepgram TTS : {model_name}")
+
         options = SpeakOptions(
-            model="aura-2-zeus-en",  # Un modèle performant, à adapter si besoin
+            model=model_name,
             encoding="linear16",  # Encodage standard pour WAV
             container="wav"
         )
@@ -42,7 +46,7 @@ def generate_audio_with_deepgram(text: str) -> Dict[str, Any]:
         print(f"LOG: Erreur lors de la génération audio avec Deepgram: {e}")
         raise
 
-def transcribe_audio_with_deepgram(audio_path: str) -> List[Dict[str, Any]]:
+def transcribe_audio_with_deepgram(audio_path: str, lang: str = 'en') -> List[Dict[str, Any]]:
     """
     Transcrire un fichier audio en utilisant le service Speech-to-Text de Deepgram.
     """
@@ -60,6 +64,7 @@ def transcribe_audio_with_deepgram(audio_path: str) -> List[Dict[str, Any]]:
 
         options = PrerecordedOptions(
             model="nova-2",
+            language=lang, # Spécifier la langue pour la transcription
             smart_format=True,
             utterances=True,
             diarize=True, # Activer la diarisation pour avoir les timings par mot
