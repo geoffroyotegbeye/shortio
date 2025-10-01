@@ -1,30 +1,47 @@
-from fastapi import FastAPI
+# app/main.py
+
+# Patch pour la compatibilité avec Pillow >= 10.0.0
+# Doit être exécuté avant l'import de moviepy (qui se fait via d'autres modules)
+import PIL.Image
+if not hasattr(PIL.Image, 'Resampling'):
+    PIL.Image.Resampling = PIL.Image # Compatibilité pour les anciennes versions
+if not hasattr(PIL.Image, 'ANTIALIAS'):
+    setattr(PIL.Image, 'ANTIALIAS', PIL.Image.Resampling.LANCZOS)
+
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.endpoints import router
+import os
 
 app = FastAPI(
-    title="TikTok Video Generator API",
-    description="API pour générer des vidéos TikTok à partir d'un concept",
-    version="1.0.0"
+    title="AI Video Generator API",
+    description="API pour générer des vidéos courtes à partir d'un prompt ou y ajouter des sous-titres.",
+    version="1.1.0"
 )
 
-# Configuration CORS
-origins = [
-    "http://localhost:5173",  # Autoriser le frontend React en développement
-    # Ajoutez ici d'autres origines si nécessaire (ex: l'URL de votre site en production)
-]
-
+# Configurer CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],  # Permettre toutes les origines (à ajuster en production)
     allow_credentials=True,
-    allow_methods=["*"],  # Autoriser toutes les méthodes (GET, POST, etc.)
-    allow_headers=["*"],  # Autoriser tous les en-têtes
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
 )
 
+# Servir les fichiers statiques (vidéos générées)
+# Utilise la variable BACKEND_DIR définie dans configs.py pour plus de robustesse
+from app.core.configs import BACKEND_DIR
+output_dir = os.path.join(BACKEND_DIR, 'output')
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+
+app.mount("/videos", StaticFiles(directory=output_dir), name="videos")
+
+# Inclure les routes de l'API
 app.include_router(router, prefix="/api/v1")
 
-# Monter le dossier 'output' pour servir les fichiers statiques (vidéos)
-# Les vidéos seront accessibles via http://localhost:8000/videos/nom_du_fichier.mp4
-app.mount("/videos", StaticFiles(directory="output"), name="videos")
+@app.get("/", tags=["Root"])
+async def read_root():
+    return {"message": "Bienvenue sur l'API AI Video Generator"}

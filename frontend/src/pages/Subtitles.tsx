@@ -1,13 +1,9 @@
 import { useState, useRef } from 'react';
-import { Upload, FileVideo, Download, Loader2 } from 'lucide-react';
-
-type SubtitlePosition = 'top' | 'middle' | 'bottom';
+import { Upload, FileVideo, Download, Loader2, Wand2 } from 'lucide-react';
 
 export default function Subtitles() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
-  const [subtitleText, setSubtitleText] = useState('');
-  const [position, setPosition] = useState<SubtitlePosition>('bottom');
   const [isProcessing, setIsProcessing] = useState(false);
   const [processedVideoUrl, setProcessedVideoUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -18,7 +14,7 @@ export default function Subtitles() {
       setVideoFile(file);
       const url = URL.createObjectURL(file);
       setVideoPreview(url);
-      setProcessedVideoUrl(null);
+      setProcessedVideoUrl(null); // Reset processed video on new file
     }
   };
 
@@ -29,7 +25,7 @@ export default function Subtitles() {
       setVideoFile(file);
       const url = URL.createObjectURL(file);
       setVideoPreview(url);
-      setProcessedVideoUrl(null);
+      setProcessedVideoUrl(null); // Reset processed video on new file
     }
   };
 
@@ -38,15 +34,14 @@ export default function Subtitles() {
   };
 
   const handleProcess = async () => {
-    if (!videoFile || !subtitleText.trim()) return;
+    if (!videoFile) return;
 
     setIsProcessing(true);
+    setProcessedVideoUrl(null);
 
     try {
       const formData = new FormData();
-      formData.append('video', videoFile);
-      formData.append('subtitle_text', subtitleText);
-      formData.append('position', position);
+      formData.append('video_file', videoFile);
 
       const response = await fetch('http://localhost:8000/api/v1/add-subtitles', {
         method: 'POST',
@@ -68,8 +63,6 @@ export default function Subtitles() {
   const handleReset = () => {
     setVideoFile(null);
     setVideoPreview(null);
-    setSubtitleText('');
-    setPosition('bottom');
     setProcessedVideoUrl(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -88,187 +81,112 @@ export default function Subtitles() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
       <div className="container mx-auto px-4 py-8">
-        <header className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">
-            Ajouter des Sous-titres Dynamiques
+        <header className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-3">
+            Sous-titrage Automatique par IA
           </h1>
-          <p className="text-gray-400">
-            Uploadez votre vidéo et personnalisez vos sous-titres
+          <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+            Uploadez une vidéo et laissez notre intelligence artificielle générer et incruster les sous-titres pour vous.
           </p>
         </header>
 
-        <div className="grid lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-          <div className="lg:col-span-1 space-y-6">
-            <div className="bg-gray-800 rounded-xl p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">Upload Vidéo</h2>
-
-              <div
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center cursor-pointer hover:border-purple-500 transition-colors duration-200"
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="video/*"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-
-                <div className="flex flex-col items-center gap-3">
-                  {videoFile ? (
-                    <>
-                      <FileVideo size={48} className="text-purple-500" />
-                      <p className="text-white font-medium">{videoFile.name}</p>
-                      <p className="text-gray-400 text-sm">
-                        Cliquez pour changer
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <Upload size={48} className="text-gray-500" />
-                      <p className="text-white font-medium">
-                        Glissez-déposez votre vidéo
-                      </p>
-                      <p className="text-gray-400 text-sm">
-                        ou cliquez pour parcourir
-                      </p>
-                    </>
-                  )}
-                </div>
+        <div className="grid lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
+          {/* Colonne de gauche : Upload et Contrôles */}
+          <div className="space-y-6 flex flex-col bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <h2 className="text-2xl font-semibold text-white mb-4">1. Choisissez une vidéo</h2>
+            <div
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onClick={() => fileInputRef.current?.click()}
+              className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center cursor-pointer hover:border-purple-500 transition-colors duration-200 flex-grow flex flex-col justify-center"
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="video/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <div className="flex flex-col items-center gap-3">
+                {videoFile ? (
+                  <>
+                    <FileVideo size={48} className="text-purple-500" />
+                    <p className="text-white font-medium">{videoFile.name}</p>
+                    <p className="text-gray-400 text-sm">Cliquez pour changer</p>
+                  </>
+                ) : (
+                  <>
+                    <Upload size={48} className="text-gray-500" />
+                    <p className="text-white font-medium">Glissez-déposez votre vidéo</p>
+                    <p className="text-gray-400 text-sm">ou cliquez pour parcourir</p>
+                  </>
+                )}
               </div>
             </div>
 
-            <div className="bg-gray-800 rounded-xl p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">Configuration</h2>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Texte des sous-titres
-                  </label>
-                  <textarea
-                    value={subtitleText}
-                    onChange={(e) => setSubtitleText(e.target.value)}
-                    placeholder="Entrez le texte à afficher..."
-                    className="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-4 py-3 min-h-[100px] focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Position des sous-titres
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <button
-                      onClick={() => setPosition('top')}
-                      className={`py-2 px-3 rounded-lg font-medium transition-all duration-200 ${
-                        position === 'top'
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      }`}
-                    >
-                      Haut
-                    </button>
-                    <button
-                      onClick={() => setPosition('middle')}
-                      className={`py-2 px-3 rounded-lg font-medium transition-all duration-200 ${
-                        position === 'middle'
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      }`}
-                    >
-                      Milieu
-                    </button>
-                    <button
-                      onClick={() => setPosition('bottom')}
-                      className={`py-2 px-3 rounded-lg font-medium transition-all duration-200 ${
-                        position === 'bottom'
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      }`}
-                    >
-                      Bas
-                    </button>
-                  </div>
-                </div>
-              </div>
-
+            <div className="space-y-4 pt-4">
               <button
                 onClick={handleProcess}
-                disabled={!videoFile || !subtitleText.trim() || isProcessing}
-                className="w-full mt-6 bg-gradient-to-r from-purple-500 to-pink-600 text-white py-3 px-6 rounded-lg font-medium hover:from-purple-600 hover:to-pink-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                disabled={!videoFile || isProcessing}
+                className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white py-4 px-6 rounded-lg font-bold text-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-200 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isProcessing ? (
                   <>
-                    <Loader2 size={20} className="animate-spin" />
-                    Traitement...
+                    <Loader2 className="animate-spin" size={24} />
+                    Génération en cours...
                   </>
                 ) : (
-                  'Ajouter les sous-titres'
+                  <>
+                    <Wand2 size={24} />
+                    Générer les sous-titres
+                  </>
                 )}
               </button>
-            </div>
-          </div>
 
-          <div className="lg:col-span-2">
-            <div className="bg-gray-800 rounded-xl p-6 min-h-[500px]">
-              {!videoPreview && !processedVideoUrl ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="bg-gray-700 rounded-full p-6 mb-4">
-                    <FileVideo size={48} className="text-purple-500" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-200 mb-2">
-                    Aucune vidéo uploadée
-                  </h3>
-                  <p className="text-gray-400 max-w-md">
-                    Uploadez une vidéo pour commencer à ajouter des sous-titres personnalisés
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-white">
-                      {processedVideoUrl ? 'Vidéo avec sous-titres' : 'Aperçu'}
-                    </h3>
-                    {processedVideoUrl && (
-                      <button
-                        onClick={handleReset}
-                        className="text-gray-400 hover:text-white transition-colors duration-200"
-                      >
-                        Nouvelle vidéo
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="bg-gray-900 rounded-lg overflow-hidden">
-                    <video
-                      src={processedVideoUrl || videoPreview || ''}
-                      controls
-                      className="w-full h-auto"
-                      key={processedVideoUrl || videoPreview}
-                    >
-                      Votre navigateur ne supporte pas la lecture de vidéos.
-                    </video>
-                  </div>
-
-                  {processedVideoUrl && (
-                    <button
-                      onClick={handleDownload}
-                      className="w-full bg-gradient-to-r from-purple-500 to-pink-600 text-white py-3 px-6 rounded-lg font-medium hover:from-purple-600 hover:to-pink-700 transition-all duration-200 flex items-center justify-center gap-2"
-                    >
-                      <Download size={20} />
-                      Télécharger la vidéo
-                    </button>
-                  )}
-                </div>
+              {videoFile && (
+                <button
+                  onClick={handleReset}
+                  className="w-full bg-gray-700 text-white py-2 rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  Recommencer
+                </button>
               )}
             </div>
           </div>
+
+          {/* Colonne de droite : Affichage Vidéo */}
+          <div className="bg-gray-800 rounded-xl p-4 flex items-center justify-center border border-gray-700">
+            <div className="w-full flex justify-center">
+              <div className="bg-gray-900 rounded-lg overflow-hidden w-full max-w-[360px] aspect-[9/16] flex items-center justify-center">
+                {processedVideoUrl ? (
+                  <video src={processedVideoUrl} controls autoPlay className="w-full h-full object-cover" />
+                ) : videoPreview ? (
+                  <video src={videoPreview} controls className="w-full h-full object-cover" />
+                ) : (
+                  <div className="text-center text-gray-500 px-4">
+                    <FileVideo size={64} className="mx-auto mb-4" />
+                    <p className="font-medium text-lg">L'aperçu de votre vidéo</p>
+                    <p>apparaîtra ici.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
+
+        {processedVideoUrl && (
+          <div className="mt-8 text-center">
+            <button
+              onClick={handleDownload}
+              className="bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-8 rounded-lg font-medium hover:from-blue-600 hover:to-blue-700 transition-all duration-200 flex items-center justify-center gap-2 mx-auto"
+            >
+              <Download size={20} />
+              Télécharger la vidéo finale
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

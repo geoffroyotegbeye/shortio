@@ -2,7 +2,7 @@
 import whisper
 from typing import List, Dict, Any
 
-def transcribe_audio_with_whisper(audio_path: str) -> List[Dict[str, Any]]:
+def transcribe_audio_with_whisper(audio_path: str, language: str = None) -> List[Dict[str, Any]]:
     """
     Transcrire un fichier audio en utilisant Whisper et retourner les segments de mots avec leurs timings.
     """
@@ -14,7 +14,7 @@ def transcribe_audio_with_whisper(audio_path: str) -> List[Dict[str, Any]]:
     print(f"LOG: Transcription de l'audio : {audio_path}")
     try:
         # Lancer la transcription avec l'option word_timestamps=True
-        result = model.transcribe(audio_path, word_timestamps=True)
+        result = model.transcribe(audio_path, word_timestamps=True, language=language)
         
         # Extraire les segments de mots
         word_segments = result.get('segments', [])

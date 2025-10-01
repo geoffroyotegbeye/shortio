@@ -1,7 +1,10 @@
 # app/api/endpoints.py
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File
+import shutil
 from app.models.schemas import VideoRequest, VideoResponse
 from app.core.tiktok_generator import make_tiktok_from_prompt
+from app.core.subtitle_generator import process_video_for_subtitles
+from app.core.configs import TEMP_DIR
 import os
 
 router = APIRouter()
@@ -34,4 +37,44 @@ async def generate_video(request: VideoRequest, http_request: Request):
         return VideoResponse(video_url=video_url)
     except Exception as e:
         print(f"LOG: Erreur critique - {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erreur lors de la génération de la vidéo : {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/add-subtitles", response_model=VideoResponse)
+async def add_subtitles_to_video(request: Request, video_file: UploadFile = File(...)):
+    """
+    Accepte une vidéo, extrait l'audio, le transcrit, et incruste les sous-titres.
+    """
+    temp_video_path = ""
+    try:
+        # Sauvegarder la vidéo uploadée temporairement
+        os.makedirs(TEMP_DIR, exist_ok=True)
+        temp_video_path = os.path.join(TEMP_DIR, video_file.filename)
+        with open(temp_video_path, "wb") as buffer:
+            shutil.copyfileobj(video_file.file, buffer)
+        
+        print(f"LOG: Vidéo uploadée sauvegardée temporairement à {temp_video_path}")
+
+        # Lancer le processus de sous-titrage
+        final_video_path = process_video_for_subtitles(
+            video_path=temp_video_path,
+            original_filename=video_file.filename
+        )
+
+        # Construire l'URL de la vidéo finale
+        base_url = str(request.base_url)
+        video_url = f"{base_url}videos/{os.path.basename(final_video_path)}"
+        print(f"LOG: URL de la vidéo avec sous-titres : {video_url}")
+
+        return VideoResponse(video_url=video_url)
+
+    except Exception as e:
+        print(f"LOG: Erreur critique lors de l'ajout de sous-titres: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        # Nettoyer la vidéo temporaire uploadée
+        if temp_video_path and os.path.exists(temp_video_path):
+            try:
+                os.remove(temp_video_path)
+                print(f"LOG: Vidéo temporaire uploadée supprimée : {temp_video_path}")
+            except Exception as e:
+                print(f"LOG: Erreur lors de la suppression de la vidéo temporaire {temp_video_path}: {e}")

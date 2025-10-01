@@ -1,7 +1,7 @@
 # app/core/tiktok_generator.py
 import time
 import os
-from app.core.configs import OUTPUT_DIR, FPS
+from app.core.configs import OUTPUT_DIR, TEMP_DIR, FPS
 from app.utils.llm_utils import generate_script_with_openai
 # Import both audio generation options
 from app.utils.elevenlabs_utils import generate_audio_with_timing
@@ -73,15 +73,33 @@ def make_tiktok_from_prompt(prompt, n_images=3, category="astuce", lang="fr", to
 
         # Logique de génération audio avec fallback
         print("LOG: Étape 3 - Tentative de génération audio...")
-        try:
-            print("LOG: Tentative avec Deepgram (prioritaire)...")
-            audio_response = generate_audio_with_deepgram(text=script, lang=lang)
-        except Exception as e_deepgram:
-            print(f"LOG: Échec de Deepgram TTS: {e_deepgram}. Tentative avec ElevenLabs...")
+        audio_response = None
+
+        if lang == 'fr':
+            print("LOG: Langue française détectée. Tentative de génération audio...")
+            # 1. Essayer ElevenLabs
             try:
+                print("LOG: Tentative avec ElevenLabs (prioritaire pour le français)...")
                 audio_response = generate_audio_with_timing(text=script)
             except Exception as e_elevenlabs:
-                print(f"LOG: Échec d'ElevenLabs: {e_elevenlabs}. Tentative avec gTTS...")
+                print(f"LOG: Échec d'ElevenLabs: {e_elevenlabs}. Tentative avec Cartesia...")
+                # 2. Essayer Cartesia
+                try:
+                    audio_response = generate_audio_with_cartesia(text=script, lang=lang)
+                except Exception as e_cartesia:
+                    print(f"LOG: Échec de Cartesia: {e_cartesia}. Tentative avec gTTS...")
+                    # 3. Essayer gTTS en dernier recours
+                    try:
+                        audio_response = generate_audio_with_gtts(text=script, lang=lang)
+                    except Exception as e_gtts:
+                        print(f"LOG: Échec de gTTS: {e_gtts}. La génération audio a échoué.")
+                        raise Exception("Tous les services de génération audio français ont échoué.")
+        else: # Pour l'anglais et autres langues supportées par Deepgram
+            print("LOG: Langue anglaise détectée. Priorité à Deepgram pour le TTS.")
+            try:
+                audio_response = generate_audio_with_deepgram(text=script, lang=lang)
+            except Exception as e_deepgram:
+                print(f"LOG: Échec de Deepgram TTS: {e_deepgram}. Tentative avec gTTS...")
                 try:
                     audio_response = generate_audio_with_gtts(text=script, lang=lang)
                 except Exception as e_gtts:
@@ -108,7 +126,8 @@ def make_tiktok_from_prompt(prompt, n_images=3, category="astuce", lang="fr", to
         print("LOG: Étape 3.5 - Tentative de transcription pour la synchronisation...")
         try:
             print("LOG: Tentative avec Deepgram (prioritaire)...")
-            timing_data = transcribe_audio_with_deepgram(audio_path, lang=lang)
+            deepgram_result = transcribe_audio_with_deepgram(audio_path, lang=lang)
+            timing_data = deepgram_result.get("words", [])
         except Exception as e_deepgram_stt:
             print(f"LOG: Échec de Deepgram STT: {e_deepgram_stt}. Tentative avec Whisper...")
             try:

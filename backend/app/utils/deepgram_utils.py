@@ -46,7 +46,7 @@ def generate_audio_with_deepgram(text: str, lang: str = 'en') -> Dict[str, Any]:
         print(f"LOG: Erreur lors de la génération audio avec Deepgram: {e}")
         raise
 
-def transcribe_audio_with_deepgram(audio_path: str, lang: str = 'en') -> List[Dict[str, Any]]:
+def transcribe_audio_with_deepgram(audio_path: str, lang: str = None) -> Dict[str, Any]:
     """
     Transcrire un fichier audio en utilisant le service Speech-to-Text de Deepgram.
     """
@@ -64,25 +64,43 @@ def transcribe_audio_with_deepgram(audio_path: str, lang: str = 'en') -> List[Di
 
         options = PrerecordedOptions(
             model="nova-2",
-            language=lang, # Spécifier la langue pour la transcription
+            detect_language=True, # Détection automatique de la langue
             smart_format=True,
             utterances=True,
             diarize=True, # Activer la diarisation pour avoir les timings par mot
             punctuate=True
         )
 
-        response = deepgram_client.listen.prerecorded.v("1").transcribe_file(payload, options)
+        response = deepgram_client.listen.prerecorded.v("1").transcribe_file(
+            payload,
+            options,
+            timeout=600 # Timeout de 10 minutes pour les fichiers longs
+        )
+
+        response_dict = response.to_dict()
         
-        # Extraire les mots et leurs timings
-        words = response.results.channels[0].alternatives[0].words
-        # Transformer les objets Word en dictionnaires simples
-        word_list = [
-            {"word": word.word, "start": word.start, "end": word.end}
-            for word in words
-        ]
-        
-        print(f"LOG: Transcription Deepgram terminée. {len(word_list)} mots trouvés.")
-        return word_list
+        # Extraire les informations utiles
+        words = []
+        detected_language = ""
+        if response_dict.get('results'):
+            channels = response_dict['results'].get('channels', [])
+            if channels:
+                alternatives = channels[0].get('alternatives', [])
+                if alternatives:
+                    detected_language = alternatives[0].get('detected_language', '')
+                    transcript_words = alternatives[0].get('words', [])
+                    for word in transcript_words:
+                        words.append({
+                            'word': word.get('punctuated_word', word.get('word')),
+                            'start': word.get('start'),
+                            'end': word.get('end')
+                        })
+
+        print(f"LOG: Transcription Deepgram réussie, {len(words)} mots trouvés. Langue détectée: {detected_language}")
+        return {
+            "words": words,
+            "detected_language": detected_language
+        }
 
     except Exception as e:
         print(f"LOG: Erreur lors de la transcription avec Deepgram: {e}")

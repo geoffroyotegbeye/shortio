@@ -1,6 +1,7 @@
 # app/utils/llm_utils.py
 import openai
 import time
+import re
 from app.core.config_loader import OPENAI_API_KEY
 
 # Initialiser le client OpenAI avec la clé API
@@ -24,7 +25,11 @@ def generate_script_with_openai(prompt: str, tone: str) -> str:
                 temperature=0.7,
                 timeout=30,  # Timeout explicite de 30 secondes
             )
-            return response.choices[0].message.content.strip()
+            script = response.choices[0].message.content.strip()
+            # Nettoyer le script pour enlever les hashtags
+            cleaned_script = re.sub(r'#\w+\s*', '', script).strip()
+            print(f"LOG: Script nettoyé (sans hashtags) : {cleaned_script}")
+            return cleaned_script
         except openai.Timeout:
             if attempt < max_retries - 1:
                 print(f"LOG: Timeout lors de l'appel à l'API OpenAI. Nouvelle tentative dans {retry_delay} secondes...")

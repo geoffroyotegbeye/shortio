@@ -1,8 +1,11 @@
 import os
 
-# Dossier de sortie
-OUTPUT_DIR = "output"
+# Définir les chemins de base
+BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+OUTPUT_DIR = os.path.join(BACKEND_DIR, "output")
+TEMP_DIR = os.path.join(BACKEND_DIR, "temp")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(TEMP_DIR, exist_ok=True)
 
 # Paramètres vidéo
 WIDTH, HEIGHT = 1080, 1920  # Format TikTok
